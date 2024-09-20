@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request
+from flask import Flask,render_template,request,redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -13,9 +13,9 @@ class Todo(db.Model):
     title=db.Column(db.String(200),nullable=False)
     desc=db.Column(db.String(500),nullable=False)
     date_created=db.Column(db.DateTime,default=datetime.now)
-
-with app.app_context():
-    db.create_all()
+#use to create db
+# with app.app_context():
+#     db.create_all()
 
     def __repr__(self) -> str:
         return f"{self.sno}-{self.title}"
@@ -41,9 +41,36 @@ def create():
 @app.route('/alltodos',methods=['GET','POST'])
 def show_todo():
     if request.method=='POST':
-        print(request.form.get('title'))
+        title=request.form.get('title')
+        desc=request.form.get('desc')
+        todo=Todo(title=title,desc=desc)
+        db.session.add(todo)
+        db.session.commit()
+        # print(request.form.get('title'))------------->this is how you can fetch data from form
     alltodo=Todo.query.all()
     return render_template('index.html',all_todo=alltodo)
+
+@app.route('/update/<int:sno>',methods=['GET','POST'])
+def update(sno):
+    if request.method=='POST':
+        title=request.form.get('title')
+        desc=request.form.get('desc')
+        todo=Todo.query.filter_by(sno=sno).first()
+        todo.title=title
+        todo.desc=desc
+        db.session.add(todo)
+        db.session.commit()
+        return redirect("/alltodos")
+    todo=Todo.query.filter_by(sno=sno).first()
+    return render_template('update.html',todo=todo)
+
+@app.route('/delete/<int:sno>')
+def delete(sno):
+    todo=Todo.query.filter_by(sno=sno).first()
+    print(todo)
+    db.session.delete(todo)
+    db.session.commit()
+    return redirect('/alltodos')
 
 if __name__=="__main__":
     # app.run(debug=True)  #---------->default it will run on 5000 port--->Running on http://127.0.0.1:5000
